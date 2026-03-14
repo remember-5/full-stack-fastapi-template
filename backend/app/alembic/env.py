@@ -15,12 +15,10 @@ fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-# target_metadata = None
 
-from app.models import SQLModel  # noqa
-from app.core.config import settings # noqa
+from app.users.models import SQLModel  # noqa: E402
+from app.items.models import Item  # noqa: E402, F401
+from app.core.config import settings  # noqa: E402
 
 target_metadata = SQLModel.metadata
 
@@ -31,7 +29,7 @@ target_metadata = SQLModel.metadata
 
 
 def get_url():
-    return str(settings.SQLALCHEMY_DATABASE_URI)
+    return str(settings.db.SQLALCHEMY_DATABASE_URI)
 
 
 def run_migrations_offline():
