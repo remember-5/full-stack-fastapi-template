@@ -2,6 +2,7 @@ import logging
 
 from sqlmodel import Session
 
+from app.api.items.models import Item  # noqa: F401
 from app.core.db import engine, init_db
 
 logging.basicConfig(level=logging.INFO)

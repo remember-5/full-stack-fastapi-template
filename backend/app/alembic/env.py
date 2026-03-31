@@ -19,8 +19,12 @@ fileConfig(config.config_file_name)
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 
-from app.models import SQLModel  # noqa
+from sqlmodel import SQLModel  # noqa
 from app.core.config import settings # noqa
+
+# Import all models to ensure they are registered with SQLModel
+from app.api.users.models import User  # noqa
+from app.api.items.models import Item  # noqa
 
 target_metadata = SQLModel.metadata
 

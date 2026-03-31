@@ -7,7 +7,8 @@ from sqlmodel import Session, delete
 from app.core.config import settings
 from app.core.db import engine, init_db
 from app.main import app
-from app.models import Item, User
+from app.api.users.models import User
+from app.api.items.models import Item
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
@@ -17,10 +18,11 @@ def db() -> Generator[Session, None, None]:
     with Session(engine) as session:
         init_db(session)
         yield session
+        # Clean up test data but preserve the superuser
         statement = delete(Item)
-        session.execute(statement)
-        statement = delete(User)
-        session.execute(statement)
+        session.exec(statement)
+        statement = delete(User).where(User.email != settings.FIRST_SUPERUSER)
+        session.exec(statement)
         session.commit()
 
 
