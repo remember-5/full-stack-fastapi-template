@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class ExceptionMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Any]]) -> Any:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Any]]
+    ) -> Any:
         try:
             return await call_next(request)
         except Exception as exc:

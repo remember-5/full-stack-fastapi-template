@@ -10,7 +10,9 @@ request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Any]]) -> Any:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Any]]
+    ) -> Any:
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         request_id_var.set(request_id)
         response = await call_next(request)

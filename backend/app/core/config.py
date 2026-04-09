@@ -1,6 +1,6 @@
 import secrets
 import warnings
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import (
     AnyUrl,
@@ -12,7 +12,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Self
 
 
 def parse_cors(v: Any) -> list[str] | str:
@@ -55,6 +54,17 @@ class Settings(BaseSettings):
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str = ""
     POSTGRES_DB: str = ""
+    OPENAI_API_KEY: str | None = None
+    OPENAI_BASE_URL: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
+    ANTHROPIC_BASE_URL: str | None = None
+    LANGSMITH_API_KEY: str | None = None
+    LANGSMITH_TRACING: bool = True
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
+    LANGSMITH_PROJECT: str = "ontology-py"
+    LLM_PROVIDER_DEFAULT: Literal["openai", "anthropic"] = "openai"
+    LLM_MODEL_OPENAI_DEFAULT: str = "gpt-4.1-mini"
+    LLM_MODEL_ANTHROPIC_DEFAULT: str = "claude-3-5-haiku-latest"
 
     @computed_field  # type: ignore[prop-decorator]
     @property

@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, cast
 
 from fastapi import HTTPException
 from sqlmodel import Session, func, select
@@ -19,7 +20,12 @@ class ItemService:
         if current_user.is_superuser:
             count_statement = select(func.count()).select_from(Item)
             count = session.exec(count_statement).one()
-            statement = select(Item).order_by(Item.created_at.desc()).offset(skip).limit(limit)
+            statement = (
+                select(Item)
+                .order_by(cast(Any, Item.created_at).desc())
+                .offset(skip)
+                .limit(limit)
+            )
         else:
             count_statement = (
                 select(func.count())
@@ -30,7 +36,7 @@ class ItemService:
             statement = (
                 select(Item)
                 .where(Item.owner_id == current_user.id)
-                .order_by(Item.created_at.desc())
+                .order_by(cast(Any, Item.created_at).desc())
                 .offset(skip)
                 .limit(limit)
             )

@@ -27,7 +27,7 @@ Agent guidance for working in `full-stack-fastapi-template`.
 ## Tooling
 
 - Python package management: `uv`
-- Python version: `>=3.10,<4.0`
+- Python version: `>=3.11,<4.0`
 - Backend linting/formatting: `ruff`
 - Backend type checking: `mypy --strict`
 - Backend testing: `pytest` with `coverage`

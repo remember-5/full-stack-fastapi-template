@@ -122,9 +122,7 @@ def read_user_by_id(
     dependencies=[Depends(get_current_active_superuser)],
     response_model=UserPublic,
 )
-def update_user(
-    session: SessionDep, user_id: uuid.UUID, user_in: UserUpdate
-) -> User:
+def update_user(session: SessionDep, user_id: uuid.UUID, user_in: UserUpdate) -> User:
     """Update a user."""
     return UserService.update_user(
         session=session, user_id=user_id, user_update=user_in

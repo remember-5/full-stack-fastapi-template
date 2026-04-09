@@ -11,3 +11,5 @@ node_modules/
 .evn.local
 
 .worktrees
+
+.langgraph_api/

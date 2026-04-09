@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Any]]) -> Any:
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Any]]
+    ) -> Any:
         start_time = time.time()
         request_id = get_request_id()
 

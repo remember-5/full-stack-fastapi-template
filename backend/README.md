@@ -4,6 +4,7 @@
 
 * [Docker](https://www.docker.com/).
 * [uv](https://docs.astral.sh/uv/) for Python package and environment management.
+* Python 3.11+ for local LangGraph CLI development.
 
 ## Docker Compose
 
@@ -28,6 +29,42 @@ $ source .venv/bin/activate
 Make sure your editor is using the correct Python virtual environment, with the interpreter at `backend/.venv/bin/python`.
 
 Modify or add SQLModel models for data and SQL tables in `./backend/app/models.py`, API endpoints in `./backend/app/api/`, CRUD (Create, Read, Update, Delete) utils in `./backend/app/crud.py`.
+
+## LangGraph Local Development
+
+The backend now includes a minimal LangChain/LangGraph agent skeleton under `./backend/app/ai/`.
+
+To start the LangGraph local development server:
+
+```console
+$ cd backend
+$ uv run langgraph dev
+```
+
+The CLI configuration lives in `./backend/langgraph.json` and loads environment variables from the repository root `../.env`. The exported agent currently points directly at `./backend/app/ai/agents/chat/graph.py`.
+
+The chat agent keeps its prompt, tools, and graph export under `./backend/app/ai/agents/chat/`, while shared helpers live under `./backend/app/ai/shared/`.
+
+Relevant environment variables in the repository root `.env`:
+
+```dotenv
+# LLM
+OPENAI_API_KEY=
+OPENAI_BASE_URL=
+ANTHROPIC_API_KEY=
+ANTHROPIC_BASE_URL=
+LLM_PROVIDER_DEFAULT=openai
+LLM_MODEL_OPENAI_DEFAULT=gpt-4.1-mini
+LLM_MODEL_ANTHROPIC_DEFAULT=claude-3-5-haiku-latest
+
+# LangSmith
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=
+LANGSMITH_PROJECT="ontology-py"
+```
+
+Use `OPENAI_BASE_URL` or `ANTHROPIC_BASE_URL` when you need a custom provider endpoint. Set `LANGSMITH_API_KEY` when you want to connect LangGraph Studio to the local server.
 
 ## VS Code
 

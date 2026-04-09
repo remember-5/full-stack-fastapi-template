@@ -33,9 +33,7 @@ def create_item(
 
 
 @router.get("/{id}", response_model=ItemPublic)
-def read_item(
-    session: SessionDep, current_user: CurrentUser, id: uuid.UUID
-) -> Item:
+def read_item(session: SessionDep, current_user: CurrentUser, id: uuid.UUID) -> Item:
     """Get item by ID."""
     return ItemService.get_item_by_id(
         session=session, item_id=id, current_user=current_user
