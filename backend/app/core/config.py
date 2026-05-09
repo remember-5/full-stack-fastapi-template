@@ -57,6 +57,11 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def POSTGRES_DB_TEST(self) -> str:
+        return f"{self.POSTGRES_DB}_test"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def SQLALCHEMY_DATABASE_URI(self) -> PostgresDsn:
         return PostgresDsn.build(
             scheme="postgresql+psycopg",
