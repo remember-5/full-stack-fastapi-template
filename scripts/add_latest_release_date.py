@@ -1,10 +1,10 @@
-"""Check release-notes.md and add today's date to the latest release header if missing."""
+"""Check release notes and add today's date to the latest release header if missing."""
 
 import re
 import sys
 from datetime import date
 
-RELEASE_NOTES_FILE = "release-notes.md"
+RELEASE_NOTES_FILE = "docs/fastapi/release-notes.md"
 RELEASE_HEADER_PATTERN = re.compile(r"^## (\d+\.\d+\.\d+)\s*(\(.*\))?\s*$")
 
 
