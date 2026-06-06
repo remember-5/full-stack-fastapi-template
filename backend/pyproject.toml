@@ -1,0 +1,86 @@
+[project]
+name = "app"
+version = "0.0.0"
+description = ""
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "alembic>=1.18.4,<2.0",
+    "email-validator>=2.1.0.post1,<3.0",
+    "emails>=1.1.2,<2.0",
+    "fastapi[standard]>=0.136.3,<1.0",
+    "httpx>=0.25.1,<1.0",
+    "jinja2>=3.1.4,<4.0",
+    "psycopg[binary,pool]>=3.3.4,<4.0",
+    "pwdlib[argon2]>=0.3.0",
+    "pydantic>=2.13.4",
+    "pydantic-settings>=2.14.1,<3.0",
+    "pyjwt>=2.13.0,<3.0",
+    "python-multipart>=0.0.32,<1.0",
+    "sentry-sdk[fastapi]>=2.62.0,<3.0",
+    "sqlalchemy[asyncio]>=2.0.50,<3.0",
+    "tenacity>=9.1.4,<10.0",
+]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.14.1,<8.0",
+    "factory-boy>=3.3,<4.0",
+    "faker>=40.23.0,<41.0",
+    "mypy>=2.1.0,<3.0",
+    "pytest>=9.0.3,<10.0",
+    "pytest-asyncio>=1.4.0,<2.0",
+    "pytest-cov>=5.0,<8.0",
+    "ruff>=0.15.17,<1.0",
+    "ty>=0.0.49",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.mypy]
+strict = true
+exclude = ["venv", ".venv", "alembic"]
+
+[tool.ruff]
+target-version = "py313"
+exclude = ["alembic"]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG001", # unused arguments in functions
+    "T201",   # print statements are not allowed
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+sort = "-Cover"
+
+[tool.coverage.html]
+show_contexts = false
+
+[tool.ty.terminal]
+error-on-warning = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
