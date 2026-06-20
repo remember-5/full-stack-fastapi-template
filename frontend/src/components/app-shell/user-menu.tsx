@@ -19,9 +19,9 @@ import {
 import useAuth from "@/hooks/useAuth"
 import { getInitials } from "@/lib/user"
 
-const SettingsDialog = lazy(() =>
-  import("@/features/settings/settings-dialog").then((module) => ({
-    default: module.SettingsDialog,
+const AccountSettingsDialog = lazy(() =>
+  import("@/features/settings/account-settings-dialog").then((module) => ({
+    default: module.AccountSettingsDialog,
   })),
 )
 
@@ -49,8 +49,8 @@ export function UserMenu({ user }: { user?: UserPublic | null }) {
   const { logout } = useAuth()
   const { isMobile } = useSidebar()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsMounted, setSettingsMounted] = useState(false)
+  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false)
+  const [accountSettingsMounted, setAccountSettingsMounted] = useState(false)
 
   if (!user) {
     return null
@@ -85,24 +85,24 @@ export function UserMenu({ user }: { user?: UserPublic | null }) {
             <DropdownMenuItem
               onSelect={() => {
                 setMenuOpen(false)
-                setSettingsMounted(true)
-                setSettingsOpen(true)
+                setAccountSettingsMounted(true)
+                setAccountSettingsOpen(true)
               }}
             >
               <Settings />
-              Settings
+              Account settings
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={logout}>
+            <DropdownMenuItem onSelect={logout}>
               <LogOut />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        {settingsMounted ? (
+        {accountSettingsMounted ? (
           <Suspense fallback={null}>
-            <SettingsDialog
-              open={settingsOpen}
-              onOpenChange={setSettingsOpen}
+            <AccountSettingsDialog
+              open={accountSettingsOpen}
+              onOpenChange={setAccountSettingsOpen}
             />
           </Suspense>
         ) : null}

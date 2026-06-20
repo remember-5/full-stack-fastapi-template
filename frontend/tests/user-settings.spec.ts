@@ -6,19 +6,21 @@ import { logInUser, logOutUser } from "./utils/user"
 
 const settingsSections = ["My profile", "Password", "Danger zone"]
 
-async function openSettingsDialog(page: Page) {
+async function openAccountSettingsDialog(page: Page) {
   await page.goto("/")
   const sidebarTrigger = page.getByRole("button", { name: "Toggle Sidebar" })
   if (await sidebarTrigger.isVisible().catch(() => false)) {
     await sidebarTrigger.click()
   }
   await page.getByTestId("user-menu").click()
-  await page.getByRole("menuitem", { name: "Settings" }).click()
-  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible()
+  await page.getByRole("menuitem", { name: "Account settings" }).click()
+  await expect(
+    page.getByRole("dialog", { name: "Account settings" }),
+  ).toBeVisible()
 }
 
 test("My profile section is active by default", async ({ page }) => {
-  await openSettingsDialog(page)
+  await openAccountSettingsDialog(page)
 
   await expect(
     page.getByRole("button", { name: "My profile" }),
@@ -26,7 +28,7 @@ test("My profile section is active by default", async ({ page }) => {
 })
 
 test("All settings sections are visible", async ({ page }) => {
-  await openSettingsDialog(page)
+  await openAccountSettingsDialog(page)
   for (const section of settingsSections) {
     await expect(page.getByRole("button", { name: section })).toBeVisible()
   }
@@ -38,16 +40,18 @@ test("Settings dialog opens from user menu", async ({ page }) => {
   await expect(
     page.getByRole("menuitem", { name: "Personal info" }),
   ).toHaveCount(0)
-  await page.getByRole("menuitem", { name: "Settings" }).click()
+  await page.getByRole("menuitem", { name: "Account settings" }).click()
 
   await expect(page.getByRole("menu")).not.toBeVisible()
-  await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible()
+  await expect(
+    page.getByRole("dialog", { name: "Account settings" }),
+  ).toBeVisible()
   await expect(page.getByRole("button", { name: "My profile" })).toBeVisible()
 })
 
 test("Settings sections can be switched on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await openSettingsDialog(page)
+  await openAccountSettingsDialog(page)
 
   await page.getByRole("combobox").click()
   await page.getByRole("option", { name: "Password" }).click()
@@ -58,7 +62,7 @@ test("Settings sections can be switched on mobile", async ({ page }) => {
 })
 
 test("Settings dialog does not include layout demo pages", async ({ page }) => {
-  await openSettingsDialog(page)
+  await openAccountSettingsDialog(page)
 
   for (const section of [
     "Notifications",
@@ -82,7 +86,7 @@ test.describe("Edit user profile", () => {
 
   test.beforeEach(async ({ page }) => {
     await logInUser(page, email, password)
-    await openSettingsDialog(page)
+    await openAccountSettingsDialog(page)
   })
 
   test("Edit user name with a valid name", async ({ page }) => {
@@ -119,7 +123,7 @@ test.describe("Edit user email", () => {
 
     await createUser({ email, password })
     await logInUser(page, email, password)
-    await openSettingsDialog(page)
+    await openAccountSettingsDialog(page)
 
     await page.getByRole("button", { name: "Edit" }).click()
     await page.getByLabel("Email").fill(updatedEmail)
@@ -141,7 +145,7 @@ test.describe("Cancel edit actions", () => {
     const user = await createUser({ email, password })
 
     await logInUser(page, email, password)
-    await openSettingsDialog(page)
+    await openAccountSettingsDialog(page)
     await page.getByRole("button", { name: "Edit" }).click()
     await page.getByLabel("Full name").fill("Test User")
     await page.getByRole("button", { name: "Cancel" }).first().click()
@@ -157,7 +161,7 @@ test.describe("Cancel edit actions", () => {
     await createUser({ email, password })
 
     await logInUser(page, email, password)
-    await openSettingsDialog(page)
+    await openAccountSettingsDialog(page)
     await page.getByRole("button", { name: "Edit" }).click()
     await page.getByLabel("Email").fill(randomEmail())
     await page.getByRole("button", { name: "Cancel" }).first().click()
@@ -179,7 +183,7 @@ test.describe("Change password", () => {
     await createUser({ email, password })
     await logInUser(page, email, password)
 
-    await openSettingsDialog(page)
+    await openAccountSettingsDialog(page)
     await page.getByRole("button", { name: "Password" }).click()
     await page.getByTestId("current-password-input").fill(password)
     await page.getByTestId("new-password-input").fill(newPassword)
@@ -206,7 +210,7 @@ test.describe("Change password validation", () => {
 
   test.beforeEach(async ({ page }) => {
     await logInUser(page, email, password)
-    await openSettingsDialog(page)
+    await openAccountSettingsDialog(page)
     await page.getByRole("button", { name: "Password" }).click()
   })
 

@@ -62,7 +62,7 @@ const settingsSections: Array<{
   },
 ]
 
-function SettingsDialogContent({
+function AccountSettingsDialogContent({
   activeSection,
   setActiveSection,
 }: {
@@ -76,7 +76,7 @@ function SettingsDialogContent({
 
   return (
     <DialogContent className="overflow-hidden p-0 md:max-h-[500px] md:max-w-[700px] lg:max-w-[800px]">
-      <DialogTitle className="sr-only">Settings</DialogTitle>
+      <DialogTitle className="sr-only">Account settings</DialogTitle>
       <DialogDescription className="sr-only">
         Manage your account settings.
       </DialogDescription>
@@ -133,7 +133,7 @@ function SettingsDialogContent({
   )
 }
 
-export function SettingsDialog({
+export function AccountSettingsDialog({
   children,
   defaultSection = "my-profile",
   open: openProp,
@@ -153,7 +153,7 @@ export function SettingsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {children}
-      <SettingsDialogContent
+      <AccountSettingsDialogContent
         activeSection={activeSection}
         setActiveSection={setActiveSection}
       />

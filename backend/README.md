@@ -36,11 +36,11 @@ $ uv sync
 Activate the virtual environment with:
 
 ```console
-$ source .venv/bin/activate
+$ source ../.venv/bin/activate
 ```
 
 Make sure your editor is using the Python interpreter at
-`backend/.venv/bin/python`.
+`.venv/bin/python` from the repository root.
 
 Backend code is organized by domain under `./backend/app/modules/`.
 
@@ -227,7 +227,7 @@ $ fastapi run --reload app/main.py
 ## VS Code
 
 The repository includes VS Code configurations for backend debugging and Python
-test discovery. Use the `backend/.venv/bin/python` interpreter.
+test discovery. Use the repository root `.venv/bin/python` interpreter.
 
 ## Email Templates
 
