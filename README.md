@@ -46,9 +46,15 @@ Infrastructure:
 └── README.md
 ```
 
-## Quick Start
+## Quick Start With Docker
 
-Copy or update environment values in `.env` before running the stack. At minimum, change secrets before deployment:
+Copy the example environment file and update local values before running the stack:
+
+```bash
+cp .env.example .env
+```
+
+At minimum, change secrets before deployment:
 
 - `SECRET_KEY`
 - `FIRST_SUPERUSER_PASSWORD`
@@ -66,13 +72,90 @@ Start the local Docker Compose stack:
 docker compose watch
 ```
 
-Run the frontend development server from the repository root:
+The Docker stack exposes:
+
+- API: `http://localhost:8000`
+- API docs: `http://localhost:8000/docs`
+- Frontend container: `http://localhost:5173`
+- Adminer: `http://localhost:8080`
+- Mailcatcher: `http://localhost:1080`
+
+For frontend work, the host Vite server is usually faster than rebuilding the
+frontend Docker image. From the repository root:
 
 ```bash
+bun install
 bun run dev
 ```
 
 The frontend development server runs at `http://localhost:5173/`.
+
+## Local Development Without Backend Docker
+
+You can run the backend and frontend directly on the host. You still need a
+PostgreSQL database that matches `.env`; the default `.env.example` values use:
+
+- `POSTGRES_SERVER=localhost`
+- `POSTGRES_PORT=5432`
+- `POSTGRES_DB=app`
+- `POSTGRES_USER=postgres`
+- `POSTGRES_PASSWORD=changethis`
+
+If you want Docker only for supporting services, start just the database and Mailcatcher:
+
+```bash
+docker compose up -d db mailcatcher
+```
+
+Then install and prepare the backend:
+
+```bash
+cd backend
+uv sync
+source ../.venv/bin/activate
+bash ./scripts/prestart.sh
+```
+
+Run the backend locally:
+
+```bash
+cd backend
+fastapi run --reload app/main.py
+```
+
+In a second terminal, run the frontend locally:
+
+```bash
+bun install
+bun run dev
+```
+
+The local frontend talks to the API at `http://localhost:8000` by default. To point it elsewhere, set `VITE_API_URL` in `frontend/.env`.
+
+## Generated Frontend API Client
+
+The frontend API client in `frontend/src/client` is generated from the backend OpenAPI schema. Do not edit generated client files by hand.
+
+Regenerate the client after changing backend routes, request/response schemas, or OpenAPI metadata:
+
+```bash
+bash ./scripts/generate-client.sh
+```
+
+That script:
+
+- loads `.env` or falls back to `.env.example`;
+- exports the current backend OpenAPI schema into `frontend/openapi.json`;
+- runs the frontend `generate-client` script;
+- runs frontend lint checks.
+
+If you only want to verify that `frontend/openapi.json` is in sync with the backend schema:
+
+```bash
+bash ./scripts/check-openapi.sh
+```
+
+Commit `frontend/openapi.json` and the regenerated files under`frontend/src/client` together with the backend API change.
 
 ## Common Commands
 
