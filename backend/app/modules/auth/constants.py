@@ -1,0 +1,7 @@
+from enum import StrEnum
+
+
+class AuthErrorCode(StrEnum):
+    INVALID_CREDENTIALS = "AUTH_INVALID_CREDENTIALS"
+    INVALID_TOKEN = "AUTH_INVALID_TOKEN"
+    INACTIVE_USER = "AUTH_INACTIVE_USER"
