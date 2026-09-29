@@ -1,5 +1,7 @@
 # FastAPI Full-Stack Project
 
+**English** | [简体中文](./README.zh-CN.md)
+
 This is a FastAPI + React full-stack application based on the Full Stack FastAPI Template. The root README is a project overview and quick entry point. For day-to-day implementation details, use the backend and frontend README.
 
 ## Stack
@@ -43,7 +45,8 @@ Infrastructure:
 ├── compose.override.yml  # Local development Compose overrides
 ├── Makefile              # Common development commands from the repository root
 ├── package.json          # Root Bun workspace scripts for frontend commands
-└── README.md
+├── README.md             # English documentation
+└── README.zh-CN.md       # Simplified Chinese documentation
 ```
 
 ## Quick Start With Docker
