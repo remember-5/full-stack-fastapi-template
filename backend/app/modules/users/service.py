@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import ColumnElement
 
 from app.core.security import get_password_hash, verify_password
 from app.modules.users.exceptions import (
@@ -11,7 +12,13 @@ from app.modules.users.exceptions import (
     UserUsernameAlreadyExists,
 )
 from app.modules.users.models import User
-from app.modules.users.schemas import UserCreate, UserRegister, UserUpdate, UserUpdateMe
+from app.modules.users.schemas import (
+    UserCreate,
+    UserListParams,
+    UserRegister,
+    UserUpdate,
+    UserUpdateMe,
+)
 
 DUMMY_HASH = "$argon2id$v=19$m=65536,t=3,p=4$MjQyZWE1MzBjYjJlZTI0Yw$YTU4NGM5ZTZmYjE2NzZlZjY0ZWY3ZGRkY2U2OWFjNjk"
 
@@ -33,14 +40,41 @@ async def get_by_username(session: AsyncSession, username: str) -> User | None:
 async def list_users(
     session: AsyncSession,
     *,
-    skip: int = 0,
-    limit: int = 100,
+    query: UserListParams,
 ) -> tuple[list[User], int]:
-    count_result = await session.execute(select(func.count()).select_from(User))
-    count = count_result.scalar_one()
+    filters: list[ColumnElement[bool]] = []
+    if query.username and (username := query.username.strip()):
+        filters.append(User.username.icontains(username, autoescape=True))
+    if query.email and (email := query.email.strip()):
+        filters.append(User.email.icontains(email, autoescape=True))
+    if query.is_active is not None:
+        filters.append(User.is_active == query.is_active)
+    if query.is_superuser is not None:
+        filters.append(User.is_superuser == query.is_superuser)
+    if query.created_after is not None:
+        filters.append(User.created_at >= query.created_after)
+    if query.created_before is not None:
+        filters.append(User.created_at < query.created_before)
 
+    count_result = await session.execute(
+        select(func.count()).select_from(User).where(*filters)
+    )
+    count = count_result.scalar_one()
+    sort_column = {
+        "full_name": User.full_name,
+        "username": User.username,
+        "email": User.email,
+        "is_active": User.is_active,
+        "is_superuser": User.is_superuser,
+        "created_at": User.created_at,
+    }[query.sort_by]
+    order = sort_column.asc() if query.sort_order == "asc" else sort_column.desc()
     result = await session.execute(
-        select(User).order_by(User.created_at.desc()).offset(skip).limit(limit)
+        select(User)
+        .where(*filters)
+        .order_by(order.nulls_last(), User.id.asc())
+        .offset(query.skip)
+        .limit(query.limit)
     )
     return list(result.scalars().all()), count
 

@@ -70,6 +70,10 @@ Rules:
 - Put reusable domain UI in `src/features/<domain>`.
 - Put shell/navigation UI in `src/components/app-shell`.
 - Put design-system primitives in `src/components/ui`.
+- Reuse `components/controls/data-table/` for table rendering, toolbar, column
+  menus, visibility controls, and pagination. Keep columns and domain filters in
+  the feature. For paginated APIs, filter and sort on the server, include all
+  request parameters in query keys, and use the API's filtered row count.
 - Put generic hooks in `src/hooks`.
 - Put shared pure utilities and cross-feature helpers in `src/lib`.
 - Do not move generated files into feature folders.
@@ -165,21 +169,16 @@ Example hooks using the current generated SDK and shared query keys:
 
 ```ts
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { PaginationState } from "@tanstack/react-table"
+import type { UserListQuery } from "@/features/users/user-table-state"
 import { type UserCreate, usersCreateUser, usersReadUsers } from "@/client"
 import { usersQueryKeys } from "@/features/users/user-query-keys"
 import { unwrapData } from "@/lib/api-client"
 
-export function useUsers(pagination: PaginationState) {
+export function useUsers(query: UserListQuery) {
   return useQuery({
-    queryKey: usersQueryKeys.list(pagination),
-    queryFn: async () =>
-      unwrapData(
-        await usersReadUsers({
-          skip: pagination.pageIndex * pagination.pageSize,
-          limit: pagination.pageSize,
-        }),
-      ),
+    queryKey: usersQueryKeys.list(query),
+    queryFn: async ({ signal }) =>
+      unwrapData(await usersReadUsers(query, { signal })),
   })
 }
 

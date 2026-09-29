@@ -1,11 +1,18 @@
-import type {
-  ColumnDef,
-  OnChangeFn,
-  PaginationState,
+import {
+  type ColumnDef,
+  getCoreRowModel,
+  useReactTable,
+  type VisibilityState,
 } from "@tanstack/react-table"
-import { ChevronDown, EllipsisVertical, Search, X } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { ChevronDown, EllipsisVertical, X } from "lucide-react"
+import { type ReactNode, useState } from "react"
 import type { UserPublic } from "@/client"
+import { DataTable } from "@/components/controls/data-table/data-table"
+import {
+  DataTableSearch,
+  DataTableToolbar,
+} from "@/components/controls/data-table/data-table-toolbar"
+import { DataTableViewOptions } from "@/components/controls/data-table/data-table-view-options"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,22 +22,25 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { ResourceDataTable } from "@/features/resources/resource-data-table"
 import {
   ChangeUserPasswordDialog,
   DeleteUserDialog,
   EditUserDialog,
 } from "@/features/users/user-dialogs"
 import { cn } from "@/lib/utils"
+import {
+  type UpdateUserTableSearch,
+  type UserTableSearch,
+  userTableSearchSchema,
+} from "./user-table-state"
 
-export type UserTableData = UserPublic & {
+type UserTableData = UserPublic & {
   isCurrentUser: boolean
 }
 
-type UserRoleFilter = "all" | "superuser" | "user"
-type UserStatusFilter = "all" | "active" | "inactive"
-type UserCreatedAtFilter = "all" | "today" | "7d" | "30d"
+type UserRoleFilter = UserTableSearch["role"]
+type UserStatusFilter = UserTableSearch["status"]
+type UserCreatedAtFilter = UserTableSearch["created"]
 
 const roleFilterLabels: Record<UserRoleFilter, string> = {
   all: "角色",
@@ -54,30 +64,6 @@ const createdAtFilterLabels: Record<UserCreatedAtFilter, string> = {
 const userDateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
 })
-
-function isWithinCreatedAtFilter(
-  createdAt: string,
-  filter: UserCreatedAtFilter,
-) {
-  if (filter === "all") {
-    return true
-  }
-
-  const createdDate = new Date(createdAt)
-  if (Number.isNaN(createdDate.getTime())) {
-    return false
-  }
-
-  const now = new Date()
-  if (filter === "today") {
-    return createdDate.toDateString() === now.toDateString()
-  }
-
-  const days = filter === "7d" ? 7 : 30
-  const threshold = new Date(now)
-  threshold.setDate(now.getDate() - days)
-  return createdDate >= threshold
-}
 
 function UserFilterMenu<TValue extends string>({
   label,
@@ -232,175 +218,144 @@ export function UsersTable({
   data,
   loading,
   error,
-  pagination,
-  onPaginationChange,
-  pageCount,
+  onRetry,
+  search,
+  onSearchChange,
   totalCount,
   action,
 }: {
   data: UserTableData[]
-  loading?: boolean
-  error?: React.ReactNode
-  pagination?: PaginationState
-  onPaginationChange?: OnChangeFn<PaginationState>
-  pageCount?: number
-  totalCount?: number
-  action?: React.ReactNode
+  loading: boolean
+  error?: string
+  onRetry: () => void
+  search: UserTableSearch
+  onSearchChange: UpdateUserTableSearch
+  totalCount: number
+  action?: ReactNode
 }) {
-  const [usernameSearch, setUsernameSearch] = useState("")
-  const [emailSearch, setEmailSearch] = useState("")
-  const [roleFilter, setRoleFilter] = useState<UserRoleFilter>("all")
-  const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("all")
-  const [createdAtFilter, setCreatedAtFilter] =
-    useState<UserCreatedAtFilter>("all")
-  const hasFilters =
-    usernameSearch.trim().length > 0 ||
-    emailSearch.trim().length > 0 ||
-    roleFilter !== "all" ||
-    statusFilter !== "all" ||
-    createdAtFilter !== "all"
-  const filteredData = useMemo(() => {
-    const normalizedUsernameSearch = usernameSearch.trim().toLowerCase()
-    const normalizedEmailSearch = emailSearch.trim().toLowerCase()
-
-    return data.filter((user) => {
-      const matchesUsername =
-        !normalizedUsernameSearch ||
-        user.username.toLowerCase().includes(normalizedUsernameSearch)
-      const matchesEmail =
-        !normalizedEmailSearch ||
-        user.email.toLowerCase().includes(normalizedEmailSearch)
-      const matchesRole =
-        roleFilter === "all" ||
-        (roleFilter === "superuser" && user.is_superuser) ||
-        (roleFilter === "user" && !user.is_superuser)
-      const matchesStatus =
-        statusFilter === "all" ||
-        (statusFilter === "active" && user.is_active) ||
-        (statusFilter === "inactive" && !user.is_active)
-      const matchesCreatedAt = isWithinCreatedAtFilter(
-        user.created_at,
-        createdAtFilter,
-      )
-
-      return (
-        matchesUsername &&
-        matchesEmail &&
-        matchesRole &&
-        matchesStatus &&
-        matchesCreatedAt
-      )
-    })
-  }, [
-    createdAtFilter,
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const pagination = { pageIndex: search.page - 1, pageSize: search.pageSize }
+  const sorting = [{ id: search.sort, desc: search.order === "desc" }]
+  const table = useReactTable({
     data,
-    emailSearch,
-    roleFilter,
-    statusFilter,
-    usernameSearch,
-  ])
-
-  useEffect(() => {
-    if (hasFilters && pagination && pagination.pageIndex > 0) {
-      onPaginationChange?.((currentPagination) => ({
-        ...currentPagination,
-        pageIndex: 0,
-      }))
-    }
-  }, [hasFilters, onPaginationChange, pagination])
-
-  const resetFilters = () => {
-    setUsernameSearch("")
-    setEmailSearch("")
-    setRoleFilter("all")
-    setStatusFilter("all")
-    setCreatedAtFilter("all")
-  }
+    columns,
+    getRowId: (user) => user.id,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    enableMultiSort: false,
+    rowCount: totalCount,
+    state: { pagination, sorting, columnVisibility },
+    onColumnVisibilityChange: setColumnVisibility,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === "function" ? updater(pagination) : updater
+      onSearchChange({
+        page: next.pageIndex + 1,
+        pageSize: userTableSearchSchema.shape.pageSize.parse(next.pageSize),
+      })
+    },
+    onSortingChange: (updater) => {
+      const next = (
+        typeof updater === "function" ? updater(sorting) : updater
+      )[0]
+      onSearchChange({
+        page: 1,
+        sort: userTableSearchSchema.shape.sort.parse(next?.id),
+        order: next ? (next.desc ? "desc" : "asc") : "desc",
+      })
+    },
+  })
+  const hasFilters = Boolean(
+    search.username ||
+      search.email ||
+      search.role !== "all" ||
+      search.status !== "all" ||
+      search.created !== "all",
+  )
+  const filter = (patch: Partial<UserTableSearch>, replace = false) =>
+    onSearchChange({ ...patch, page: 1 }, { replace })
 
   return (
-    <ResourceDataTable
-      columns={columns}
-      data={filteredData}
-      toolbar={
-        <div className="flex w-full min-w-0 flex-col gap-2 min-[1120px]:flex-row min-[1120px]:items-center">
-          <div className="grid w-full min-w-0 grid-cols-1 gap-2 min-[720px]:grid-cols-2 min-[1120px]:max-w-[420px] min-[1120px]:shrink-0">
-            <div className="relative min-w-0">
-              <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
-              <Input
-                aria-label="搜索用户名"
-                value={usernameSearch}
-                onChange={(event) => setUsernameSearch(event.target.value)}
-                placeholder="用户名"
-                className="h-9 w-full rounded-lg bg-background pr-3 pl-9"
-              />
-            </div>
-            <div className="relative min-w-0">
-              <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 size-4 text-muted-foreground" />
-              <Input
-                aria-label="搜索邮箱"
-                value={emailSearch}
-                onChange={(event) => setEmailSearch(event.target.value)}
-                placeholder="邮箱"
-                className="h-9 w-full rounded-lg bg-background pr-3 pl-9"
-              />
-            </div>
-          </div>
-          <div className="flex min-w-0 flex-wrap items-center gap-2 min-[1120px]:justify-end">
-            <UserFilterMenu
-              label={roleFilterLabels[roleFilter]}
-              value={roleFilter}
-              options={[
-                { value: "all", label: "全部角色" },
-                { value: "superuser", label: "超级用户" },
-                { value: "user", label: "普通用户" },
-              ]}
-              onValueChange={setRoleFilter}
-            />
-            <UserFilterMenu
-              label={statusFilterLabels[statusFilter]}
-              value={statusFilter}
-              options={[
-                { value: "all", label: "全部状态" },
-                { value: "active", label: "启用" },
-                { value: "inactive", label: "停用" },
-              ]}
-              onValueChange={setStatusFilter}
-            />
-            <UserFilterMenu
-              label={createdAtFilterLabels[createdAtFilter]}
-              value={createdAtFilter}
-              options={[
-                { value: "all", label: "任意时间" },
-                { value: "today", label: "今天" },
-                { value: "7d", label: "最近 7 天" },
-                { value: "30d", label: "最近 30 天" },
-              ]}
-              onValueChange={setCreatedAtFilter}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={resetFilters}
-              disabled={!hasFilters}
-              className="h-[34px] rounded-md px-2 text-[13px]"
-            >
-              <X className="size-3.5" />
-              重置
-            </Button>
-            {action}
-          </div>
-        </div>
-      }
-      emptyMessage="暂无用户。"
+    <DataTable
+      table={table}
       loading={loading}
       error={error}
-      pagination={pagination}
-      onPaginationChange={onPaginationChange}
-      pageCount={hasFilters ? 1 : pageCount}
-      totalCount={hasFilters ? filteredData.length : totalCount}
-      manualPagination={Boolean(pagination && onPaginationChange)}
-      variant="shell"
+      onRetry={onRetry}
+      emptyMessage={hasFilters ? "没有符合条件的用户。" : "暂无用户。"}
+      toolbar={
+        <DataTableToolbar
+          actions={
+            <>
+              <DataTableViewOptions table={table} />
+              {action}
+            </>
+          }
+        >
+          <DataTableSearch
+            label="搜索用户名"
+            placeholder="用户名"
+            maxLength={50}
+            value={search.username}
+            onChange={(username) => filter({ username }, true)}
+          />
+          <DataTableSearch
+            label="搜索邮箱"
+            placeholder="邮箱"
+            maxLength={255}
+            value={search.email}
+            onChange={(email) => filter({ email }, true)}
+          />
+          <UserFilterMenu
+            label={roleFilterLabels[search.role]}
+            value={search.role}
+            options={[
+              { value: "all", label: "全部角色" },
+              { value: "superuser", label: "超级用户" },
+              { value: "user", label: "普通用户" },
+            ]}
+            onValueChange={(role) => filter({ role })}
+          />
+          <UserFilterMenu
+            label={statusFilterLabels[search.status]}
+            value={search.status}
+            options={[
+              { value: "all", label: "全部状态" },
+              { value: "active", label: "启用" },
+              { value: "inactive", label: "停用" },
+            ]}
+            onValueChange={(status) => filter({ status })}
+          />
+          <UserFilterMenu
+            label={createdAtFilterLabels[search.created]}
+            value={search.created}
+            options={[
+              { value: "all", label: "任意时间" },
+              { value: "today", label: "今天" },
+              { value: "7d", label: "最近 7 天" },
+              { value: "30d", label: "最近 30 天" },
+            ]}
+            onValueChange={(created) => filter({ created })}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasFilters}
+            onClick={() =>
+              filter({
+                username: "",
+                email: "",
+                role: "all",
+                status: "all",
+                created: "all",
+              })
+            }
+          >
+            <X className="size-3.5" />
+            重置
+          </Button>
+        </DataTableToolbar>
+      }
     />
   )
 }

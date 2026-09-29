@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query, status
 from fastapi.concurrency import run_in_threadpool
 
 from app.core.config import settings
@@ -17,6 +19,7 @@ from app.modules.users.models import User
 from app.modules.users.schemas import (
     UpdatePassword,
     UserCreate,
+    UserListParams,
     UserMessage,
     UserPublic,
     UserRegister,
@@ -36,10 +39,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 )
 async def read_users(
     session: SessionDep,
-    skip: int = 0,
-    limit: int = 100,
+    query: Annotated[UserListParams, Query()],
 ) -> UsersPublic:
-    users, count = await service.list_users(session, skip=skip, limit=limit)
+    users, count = await service.list_users(session, query=query)
     return UsersPublic(
         data=[UserPublic.model_validate(user) for user in users],
         count=count,

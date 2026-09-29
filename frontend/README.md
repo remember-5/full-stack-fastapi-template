@@ -67,6 +67,40 @@ bun run generate-client
 - `frontend/src/routes` - route modules and pages.
 - `frontend/tests` - Playwright end-to-end tests.
 
+## Data Tables
+
+Reusable table controls live in `src/components/controls/data-table/`. `DataTable`
+accepts a TanStack Table instance; compose its toolbar with `DataTableToolbar`,
+`DataTableSearch`, and `DataTableViewOptions`. Keep business columns, filters, API
+calls, and URL state in the feature. The user administration page in
+`src/features/users/` is the reference implementation.
+
+The user table supports username/email search, role/status/creation-date filters,
+single-column sorting, pagination (10/20/50/100 rows), and column visibility.
+Use a column header menu to sort or hide it, and **显示列** to show it again or
+restore all default columns. Row actions always remain available. Visibility is
+local to the mounted page and resets when the page is reopened.
+
+Search, filters, sorting, and pagination are validated URL parameters, so refresh
+and browser history restore them. Typing replaces the current history entry and
+API requests are debounced by 300 ms; other table actions add history entries.
+Changing a filter, sort, or page size returns to page one. Deleting the last row
+on a page moves to the last remaining page.
+
+The users API filters and sorts **before** pagination and returns the filtered
+count. Username/email matching is case-insensitive literal substring matching.
+Sorting defaults to newest creation time first, uses the user ID as a stable
+tiebreaker, and places null names last. Date presets cover local calendar days
+(today, or today plus the preceding 6/29 days); the client sends timezone-aware
+boundaries to the API as an inclusive start and exclusive end. Generated client
+files must be refreshed with `make client` after API changes.
+
+Run the table and existing administration regression tests with:
+
+```bash
+bunx playwright test admin.spec.ts user-table.spec.ts
+```
+
 ## Generate Client
 
 Regenerate the frontend API client whenever backend OpenAPI schema changes are
