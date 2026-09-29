@@ -30,7 +30,7 @@ Infrastructure:
 
 - Docker Compose for local development and deployment
 - Traefik reverse proxy configuration
-- Mailcatcher for local email testing
+- Mailpit for local email testing
 - Sentry support when configured
 
 ## Project Layout
@@ -79,7 +79,7 @@ The Docker stack exposes:
 - API docs: `http://localhost:8000/docs`
 - Frontend container: `http://localhost:5173`
 - Adminer: `http://localhost:8080`
-- Mailcatcher: `http://localhost:1080`
+- Mailpit: `http://localhost:8025`
 
 For frontend work, the host Vite server is usually faster than rebuilding the
 frontend Docker image. From the repository root:
@@ -102,10 +102,10 @@ PostgreSQL database that matches `.env`; the default `.env.example` values use:
 - `POSTGRES_USER=postgres`
 - `POSTGRES_PASSWORD=changethis`
 
-If you want Docker only for supporting services, start just the database and Mailcatcher:
+If you want Docker only for supporting services, start just the database and Mailpit:
 
 ```bash
-docker compose up -d db mailcatcher
+docker compose up -d db mailpit
 ```
 
 Then install and prepare the backend:
@@ -166,7 +166,7 @@ Commit `frontend/openapi.json` and the regenerated files under `frontend/src/cli
 together with the backend API change. `make check-openapi` checks the schema only;
 it does not verify the generated TypeScript files.
 
-In CI, use a clean, disposable checkout with dependencies installed to verify
+Use a clean, disposable checkout with dependencies installed to verify
 both the schema and generated client:
 
 ```bash
@@ -176,8 +176,83 @@ test -z "$(git status --porcelain -- frontend/openapi.json frontend/src/client)"
 ```
 
 The status check also detects newly generated untracked files. Run this in a
-separate CI checkout because regeneration writes files. Run `make check` for
+separate checkout because regeneration writes files. Run `make check` for
 lint, type checks, backend tests, and schema consistency.
+
+## Local Automated Tests
+
+Run tests locally against your development services. After configuring `.env`,
+install dependencies and start PostgreSQL and Mailpit:
+
+```bash
+make install
+make infra
+make init-db
+```
+
+Run backend tests without starting the API server:
+
+```bash
+make test-backend
+# Run a subset:
+make test-backend ARGS="-x -k login"
+```
+
+For browser tests, install the browser matching Playwright **1.62.1** once (and
+again after a Playwright upgrade), then start the local backend from the root:
+
+```bash
+(cd frontend && bunx playwright install chromium)
+make dev-backend
+```
+
+In another terminal, run:
+
+```bash
+make test-frontend
+# Run only password recovery tests:
+make test-frontend ARGS="reset-password.spec.ts"
+# Or open the interactive test UI:
+make test-ui
+```
+
+Playwright starts or reuses the local Vite server. Browser tests create and modify
+users in the configured development database. Backend tests use the separate test
+database described below.
+
+Backend coverage is saved to `backend/htmlcov/`. Browser reports are saved to
+`frontend/playwright-report/` and `frontend/test-results/`, including JUnit output,
+failure screenshots, and traces. Open the HTML report from `frontend/` with
+`bunx playwright show-report`.
+
+### Playwright in Docker
+
+To run browser tests in the Playwright **1.62.1** image, use the existing
+development Compose services from the repository root:
+
+```bash
+docker compose up -d --build --wait backend mailpit
+docker compose run --rm --build playwright
+# Run only password recovery tests:
+docker compose run --rm playwright bunx playwright test reset-password.spec.ts
+```
+
+The `playwright` service has a `test` profile, so ordinary `docker compose up`
+does not run tests. Explicitly targeting it with `docker compose run` activates
+it. Playwright starts Vite inside its container and connects to
+`http://backend:8000` and `http://mailpit:8025`. Tests use the configured development
+database, and reports are written to the same host directories as local runs.
+Use either the host backend or the Docker backend to avoid port conflicts.
+
+### Local Email with Mailpit
+
+`make infra` starts PostgreSQL and Mailpit. Open `http://localhost:8025` to inspect
+captured emails. For a backend running on the host, configure `.env` with
+`SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_TLS=False`, and
+`MAILPIT_HOST=http://localhost:8025` for browser tests. Existing `.env` files are
+not automatically updated. The Docker backend uses `SMTP_HOST=mailpit`.
+Password recovery tests search Mailpit by the test user's unique recipient address.
+Mailpit is for local development and tests; deployments should use their SMTP provider.
 
 ## Common Commands
 
@@ -230,7 +305,7 @@ make migration MSG="add users index"
 ```
 
 Backend tests require the configured PostgreSQL instance. Playwright tests
-require the backend and Mailcatcher; Playwright starts or reuses the local Vite
+require the backend and Mailpit; Playwright starts or reuses the local Vite
 server. `make check` does not run Playwright tests or the frontend build.
 Its steps run sequentially through the individual Make targets and stop on failure.
 Frontend type checks use the same configuration as the production build;

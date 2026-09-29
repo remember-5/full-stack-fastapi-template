@@ -18,8 +18,8 @@ install: ## Install backend and frontend dependencies
 	cd backend && uv sync
 	bun install
 
-infra: ## Start PostgreSQL and Mailcatcher for local development
-	docker compose up -d db mailcatcher
+infra: ## Start PostgreSQL and Mailpit for local development
+	docker compose up -d --wait db mailpit
 
 init-db: ## Wait for the database, apply migrations, and seed the administrator
 	cd backend && uv run bash scripts/prestart.sh

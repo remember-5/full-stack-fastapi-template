@@ -110,11 +110,27 @@ When you run the frontend, it will use that URL as the API base URL.
 
 ## End-to-End Testing With Playwright
 
-The frontend includes Playwright end-to-end tests. Start the backend stack first:
+The frontend includes Playwright **1.62.1** end-to-end tests that run locally
+or in the matching Docker image.
+Configure the root `.env` using `.env.example`, including the Mailpit settings
+in the root README. Start the development services from the repository root:
 
 ```bash
-docker compose up -d --wait backend
+make install
+make infra
+make init-db
+make dev-backend
 ```
+
+In another terminal, install the matching browser from `frontend/` once (and
+after each Playwright upgrade):
+
+```bash
+bunx playwright install chromium
+```
+
+Playwright starts or reuses the local Vite server. The backend and Mailpit must
+remain running while tests execute.
 
 Run tests from `./frontend/`:
 
@@ -135,11 +151,27 @@ bun run test
 bun run test:ui
 ```
 
-To stop and remove the Docker Compose stack and clean test data:
+HTML reports are saved in `playwright-report/`; JUnit results, failure
+screenshots, and traces are saved in `test-results/`. Open the report with:
 
 ```bash
-docker compose down -v
+bunx playwright show-report
 ```
+
+To run tests in Docker instead, run these commands from the repository root:
+
+```bash
+docker compose up -d --build --wait backend mailpit
+docker compose run --rm --build playwright
+# Run a subset:
+docker compose run --rm playwright bunx playwright test reset-password.spec.ts
+```
+
+The optional `playwright` service starts Vite inside the test container. It uses
+`http://backend:8000` for API requests and `http://mailpit:8025` for email queries.
+Reports are mounted into the same directories above. Ordinary `docker compose up`
+does not start this service. Stop a host backend before starting the Docker backend
+on the same port.
 
 For more information on writing and running Playwright tests, refer to the
 [Playwright documentation](https://playwright.dev/docs/intro).

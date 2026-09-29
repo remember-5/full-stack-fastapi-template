@@ -8,6 +8,7 @@ const settingsSections = ["我的资料", "密码", "危险操作"]
 
 async function openAccountSettingsDialog(page: Page) {
   await page.goto("/")
+  await expect(page.getByText("账号", { exact: true })).toBeVisible()
   const sidebarTrigger = page.getByRole("button", { name: "切换侧边栏" })
   if (await sidebarTrigger.isVisible().catch(() => false)) {
     await sidebarTrigger.click()

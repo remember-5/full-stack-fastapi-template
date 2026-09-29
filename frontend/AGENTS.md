@@ -35,7 +35,7 @@ Target these versions or newer when changing frontend code.
 | shadcn/ui | 4.11 | Compose generated primitives instead of hand-rolling basics. |
 | Radix UI | 1.5 | Use the official `radix-ui` package instead of individual `@radix-ui/react-*` packages. |
 | @hey-api/openapi-ts | 0.98.2 | Generate the client from `frontend/openapi-ts.config.ts`; do not hand-edit generated output. |
-| Playwright | 1.60 | Add E2E tests for important user flows. |
+| Playwright | 1.62.1 | Keep the package and browser Docker image on the same exact version; install matching browsers for host tests. |
 | Biome | 2 | Do not introduce ESLint or Prettier for frontend formatting. |
 
 ## Project Structure

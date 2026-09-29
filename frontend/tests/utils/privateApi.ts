@@ -1,8 +1,9 @@
 import { usersRegisterUser } from "../../src/client"
 import { configureApiClient, unwrapData } from "../../src/lib/api-client"
+import { apiBaseUrl } from "../config"
 import { randomUsername } from "./random"
 
-configureApiClient(`${process.env.VITE_API_URL}`, () => null)
+configureApiClient(apiBaseUrl, () => null)
 
 export const createUser = async ({
   email,
