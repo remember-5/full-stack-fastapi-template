@@ -25,7 +25,7 @@ Target these versions or newer when changing frontend code.
 | Dependency | Minimum | Notes |
 |---|---:|---|
 | Bun | Current lockfile | Prefer Bun commands because the workspace uses `bun.lock`. |
-| Node.js | 20 | Keep code compatible with modern Vite tooling. |
+| Node.js | 22.18 | Required when running the current OpenAPI client generator with Node; also satisfies Vite's Node requirement. |
 | TypeScript | 5.9 | Keep `strict` mode clean. |
 | React | 19 | Use function components and hooks. |
 | Vite | 7 | Keep browser-only code out of build-time config. |
@@ -137,7 +137,7 @@ For route changes:
 - Keep route files thin. They should declare route behavior, guards, and page
   composition.
 - Move substantial UI, table, dialog, and form logic into `src/features`.
-- Protect authenticated pages through `_layout` or explicit route guards.
+- Put authenticated pages under `src/routes/_authenticated.tsx` and its child route directory; keep its `beforeLoad` authentication guard.
 - Use `redirect` from `@tanstack/react-router` for navigation decisions in
   `beforeLoad`.
 - Use route-level error and not-found behavior consistently with
@@ -152,7 +152,8 @@ Rules:
 
 ## Data Fetching and API Client
 
-- Use services and types exported from `@/client`.
+- Use generated SDK functions and types exported from `@/client`.
+- Unwrap Axios responses with `unwrapData` from `@/lib/api-client` before passing response data to UI code.
 - Use TanStack Query for server state.
 - Keep API base URL and token configuration centralized in `src/main.tsx`.
 - Use stable query keys that reflect the resource being fetched.
@@ -160,23 +161,37 @@ Rules:
 - Use existing API error handling helpers such as `handleApiError` and
   `useCustomToast` where appropriate.
 
-Example patterns:
+Example hooks using the current generated SDK and shared query keys:
 
 ```ts
-const { data } = useQuery({
-  queryKey: ["users"],
-  queryFn: UsersService.readUsers,
-})
-```
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { PaginationState } from "@tanstack/react-table"
+import { type UserCreate, usersCreateUser, usersReadUsers } from "@/client"
+import { usersQueryKeys } from "@/features/users/user-query-keys"
+import { unwrapData } from "@/lib/api-client"
 
-```ts
-const mutation = useMutation({
-  mutationFn: (data: UserCreate) =>
-    UsersService.createUser({ requestBody: data }),
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ["users"] })
-  },
-})
+export function useUsers(pagination: PaginationState) {
+  return useQuery({
+    queryKey: usersQueryKeys.list(pagination),
+    queryFn: async () =>
+      unwrapData(
+        await usersReadUsers({
+          skip: pagination.pageIndex * pagination.pageSize,
+          limit: pagination.pageSize,
+        }),
+      ),
+  })
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (data: UserCreate) =>
+      unwrapData(await usersCreateUser({ userCreate: data })),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: usersQueryKeys.lists() }),
+  })
+}
 ```
 
 Rules:

@@ -39,7 +39,6 @@ Infrastructure:
 .
 ├── backend/              # FastAPI application, migrations, backend tests
 ├── frontend/             # React application, generated API client, E2E tests
-├── scripts/              # Repository-level helper scripts
 ├── compose.yml           # Main Docker Compose stack
 ├── compose.override.yml  # Local development Compose overrides
 ├── Makefile              # Common development commands from the repository root
@@ -82,9 +81,11 @@ The Docker stack exposes:
 - Mailpit: `http://localhost:8025`
 
 For frontend work, the host Vite server is usually faster than rebuilding the
-frontend Docker image. From the repository root:
+frontend Docker image. In another terminal, stop the frontend container to free
+port 5173, then start Vite from the repository root:
 
 ```bash
+docker compose stop frontend
 bun install
 bun run dev
 ```
@@ -102,33 +103,20 @@ PostgreSQL database that matches `.env`; the default `.env.example` values use:
 - `POSTGRES_USER=postgres`
 - `POSTGRES_PASSWORD=changethis`
 
-If you want Docker only for supporting services, start just the database and Mailpit:
+With `.env` configured, run these commands from the repository root. Stop any
+Docker backend or frontend containers first so ports 8000 and 5173 are available:
 
 ```bash
-docker compose up -d db mailpit
+make install
+make infra
+make init-db
+make dev-backend
 ```
 
-Then install and prepare the backend:
+In a second terminal, run the frontend from the repository root:
 
 ```bash
-cd backend
-uv sync
-source ../.venv/bin/activate
-bash ./scripts/prestart.sh
-```
-
-Run the backend locally:
-
-```bash
-cd backend
-fastapi run --reload app/main.py
-```
-
-In a second terminal, run the frontend locally:
-
-```bash
-bun install
-bun run dev
+make dev-frontend
 ```
 
 The local frontend talks to the API at `http://localhost:8000` by default. To point it elsewhere, set `VITE_API_URL` in `frontend/.env`.
@@ -248,7 +236,7 @@ Use either the host backend or the Docker backend to avoid port conflicts.
 
 `make infra` starts PostgreSQL and Mailpit. Open `http://localhost:8025` to inspect
 captured emails. For a backend running on the host, configure `.env` with
-`SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_TLS=False`, and
+`SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_TLS=False`, `SMTP_SSL=False`, and
 `MAILPIT_HOST=http://localhost:8025` for browser tests. Existing `.env` files are
 not automatically updated. The Docker backend uses `SMTP_HOST=mailpit`.
 Password recovery tests search Mailpit by the test user's unique recipient address.
@@ -321,8 +309,7 @@ The underlying commands remain available:
 Install backend dependencies from the host:
 
 ```bash
-cd backend
-uv sync
+(cd backend && uv sync)
 ```
 
 Enter the backend container:
@@ -334,15 +321,12 @@ docker compose exec backend bash
 Run backend tests:
 
 ```bash
-cd backend
-bash ./scripts/test.sh
+(cd backend && bash ./scripts/test.sh)
 ```
 
-Run backend tests inside the container:
-
-```bash
-docker compose exec backend bash scripts/tests-start.sh
-```
+Run backend tests on the host, including when PostgreSQL runs in Docker. The
+backend image contains application code but does not include the test suite or
+all root configuration files needed by the tests.
 
 Run frontend checks from the repository root:
 
@@ -357,13 +341,17 @@ Run database migrations inside the backend container:
 docker compose exec backend alembic upgrade head
 ```
 
-Create a migration after backend model changes:
+Create a migration on the host after backend model changes, from the repository
+root with the database configured in `.env` running:
 
 ```bash
-docker compose exec backend alembic revision --autogenerate -m "describe change"
+make migration MSG="describe change"
 ```
 
-Commit generated migration files.
+Review and commit the generated files under `backend/app/alembic/versions/`.
+Compose Watch synchronizes host changes into the container; files generated
+inside the container are not copied back. Before applying a new migration in
+Docker, let Watch synchronize it or rebuild and recreate the backend container.
 
 ## Documentation
 
@@ -376,8 +364,8 @@ Use [backend/AGENTS.md](./backend/AGENTS.md) as the source of truth for backend 
 
 ## Attribution
 
-This project is based on the[Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template),
-licensed under the MIT license. The original copyright notice is retained in[LICENSE](./LICENSE).
+This project is based on the [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template),
+licensed under the MIT license. The original copyright notice is retained in [LICENSE](./LICENSE).
 
-Backend architecture rules are inspired by[FastAPI Best Practices](https://github.com/zhanymkanov/fastapi-best-practices)
+Backend architecture rules are inspired by [FastAPI Best Practices](https://github.com/zhanymkanov/fastapi-best-practices)
 and are adapted for this repository in [backend/AGENTS.md](./backend/AGENTS.md).

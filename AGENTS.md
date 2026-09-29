@@ -8,7 +8,8 @@ Root-level guidance applies to the whole repository. Backend-specific rules in `
 
 ## Build, Test, and Development Commands
 
-- `docker compose up -d`: start the full stack.
+- `docker compose up -d`: start development services; the optional Playwright service runs only when explicitly selected or its `test` profile is enabled.
+- `make infra`: start PostgreSQL and Mailpit for host development and tests.
 - `make test-backend`: run backend tests with coverage against the configured PostgreSQL instance.
 - `make check`: run lint, frontend type checks, backend tests, and OpenAPI schema consistency checks without rewriting source files.
 - `make typecheck`: check frontend TypeScript without building.
@@ -17,8 +18,17 @@ Root-level guidance applies to the whole repository. Backend-specific rules in `
 - `cd backend && sh scripts/test.sh`: run `pytest` with coverage reports.
 - `bun run dev`: start the frontend Vite dev server from the root workspace.
 - `bun run lint` / `bun run test`: run frontend Biome checks or Playwright tests.
+- `docker compose run --rm --build playwright`: run Playwright in its matching browser image against the development backend and Mailpit.
 - `make check-openapi`: verify `frontend/openapi.json` is in sync with the backend schema.
 - `make client`: export OpenAPI and regenerate `frontend/src/client` after backend API schema changes.
+- `make migration MSG="describe change"`: generate an Alembic revision on the host; review it, apply it with `make migrate` or `make migrate-docker`, and commit the verified migration.
+
+Run Make targets from the repository root. Backend tests run on the host against
+a separate test database; the backend application image does not contain the
+test suite. Compose Watch synchronizes host files into containers only, so
+generate migration files on the host. Host servers and Docker services use the
+same development ports; stop the corresponding container before starting a host
+server.
 
 ## Coding Style & Naming Conventions
 

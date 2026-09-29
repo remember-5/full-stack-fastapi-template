@@ -24,7 +24,9 @@ Enter the running backend container:
 $ docker compose exec backend bash
 ```
 
-Inside the container, the backend code is mounted under `/app/app`.
+Inside the container, the working directory is `/app/backend` and application
+code is under `/app/backend/app`. The image copies this code during the build;
+Compose Watch synchronizes subsequent host changes into `/app/backend`.
 
 ## General Workflow
 
@@ -55,11 +57,11 @@ Backend code is organized by domain under `./backend/app/modules/`.
 
 ## Backend Direction
 
-The backend Python package name stays `app`. The target backend is async-first,
+The backend Python package name is `app`. The backend is async-first,
 domain-oriented, and built on FastAPI, Pydantic v2, SQLAlchemy 2.0 async APIs,
 and Alembic.
 
-Target structure:
+Main application directories:
 
 ```text
 backend/app/
@@ -67,6 +69,7 @@ backend/app/
 ├── api/
 │   └── main.py
 ├── commands/
+│   ├── export_openapi.py
 │   ├── initial_data.py
 │   └── wait_for_db.py
 ├── core/
@@ -132,40 +135,41 @@ changes, prefer normal incremental migrations.
 
 ## Migrations
 
-As during local development your app directory is mounted as a volume inside the
-container, you can run Alembic commands inside the backend container and commit
-the generated migration files from your working tree.
-
-Start an interactive session in the backend container:
-
-```console
-$ docker compose exec backend bash
-```
-
 Alembic is configured to use SQLAlchemy metadata from
 `./backend/app/core/database.py`.
 
-After changing a model, create a revision inside the container:
+After changing a model, generate a revision on the host from the repository
+root, with the PostgreSQL instance configured in `.env` running:
 
-```console
-$ alembic revision --autogenerate -m "Add column last_name to User model"
+```bash
+make migration MSG="Add column last_name to User model"
 ```
 
-Run the migration in the database:
+Review the generated file under `backend/app/alembic/versions/`, then apply it
+using the local backend environment:
 
-```console
-$ alembic upgrade head
+```bash
+make migrate
 ```
+
+Alternatively, use `make migrate-docker` to apply migrations in the running
+backend container. First let Compose Watch synchronize the revision, or rebuild
+and recreate the container so it contains the new file. Watch copies changes
+from the host into the container only; revisions generated inside the container
+do not automatically appear in your working tree.
 
 Do not use `metadata.create_all()` as the application migration strategy. Use
 Alembic for schema changes and commit generated revision files.
 
 ## Backend Tests
 
-Run backend tests from `./backend/`:
+Run backend tests on the host from the repository root, with dependencies
+installed and the configured PostgreSQL instance running:
 
-```console
-$ bash ./scripts/test.sh
+```bash
+make test-backend
+# Stop on the first failure:
+make test-backend ARGS="-x"
 ```
 
 The tests run with Pytest. Modify and add tests under `./backend/tests/`.
@@ -182,22 +186,11 @@ Backend tests use:
 - real database or isolated-schema integration tests
 - FastAPI `dependency_overrides` for auth and external services
 
-If your stack is already up and you just want to run tests inside the container:
+The backend image does not include `backend/tests` or all root configuration
+files required by the test suite. Use the host test command even when PostgreSQL
+runs in Docker. Extra arguments passed through `ARGS` are forwarded to pytest.
 
-```bash
-docker compose exec backend bash scripts/tests-start.sh
-```
-
-That script calls `pytest` after making sure the rest of the stack is running.
-Extra arguments are forwarded to `pytest`.
-
-For example, to stop on first error:
-
-```bash
-docker compose exec backend bash scripts/tests-start.sh -x
-```
-
-When tests run, `htmlcov/index.html` is generated. Open it in your browser to
+Coverage is saved to `backend/htmlcov/index.html`. Open it in your browser to
 inspect coverage.
 
 ## Docker Compose Override
@@ -205,9 +198,10 @@ inspect coverage.
 During development, you can change Docker Compose settings that affect only the
 local development environment in `compose.override.yml`.
 
-The backend code directory is synchronized into the Docker container, so code
-changes are copied live to the directory inside the container. This lets you
-test changes without rebuilding the Docker image.
+While `docker compose watch` is running, host backend code changes are
+synchronized into `/app/backend` in the container. A plain `docker compose up`
+does not enable this synchronization. Changes to `backend/pyproject.toml`
+trigger an image rebuild.
 
 The local override runs `fastapi run --reload` instead of the production command.
 It starts a single server process and reloads whenever code changes. If a syntax
@@ -227,8 +221,10 @@ $ fastapi run --reload app/main.py
 
 ## VS Code
 
-The repository includes VS Code configurations for backend debugging and Python
-test discovery. Use the repository root `.venv/bin/python` interpreter.
+The repository includes a VS Code launch configuration for backend debugging.
+Select the repository root `.venv/bin/python` interpreter. To use test discovery,
+configure pytest for the `backend/tests` directory through VS Code's Python
+testing setup.
 
 ## Email Templates
 

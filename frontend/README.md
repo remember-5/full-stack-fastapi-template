@@ -5,7 +5,8 @@ The frontend is built with Vite, React, TypeScript, TanStack Router, TanStack Qu
 ## Requirements
 
 - [Bun](https://bun.sh/) recommended
-- [Node.js](https://nodejs.org/) as an alternative runtime for compatible commands
+- [Node.js](https://nodejs.org/) 22.18+ for tools executed with Node, including
+  the OpenAPI client generator; repository scripts use Bun.
 
 ## Quick Start
 
@@ -59,7 +60,7 @@ bun run generate-client
 ## Code Structure
 
 - `frontend/src` - main frontend code.
-- `frontend/src/assets` - static assets.
+- `frontend/public` - static assets.
 - `frontend/src/client` - generated OpenAPI client.
 - `frontend/src/components` - reusable UI components.
 - `frontend/src/hooks` - custom hooks.
@@ -88,7 +89,7 @@ or `make check` for the combined repository checks.
 ### Manually
 
 - Start the Docker Compose stack.
-- Download the OpenAPI JSON file from `http://localhost/api/v1/openapi.json`.
+- Download the OpenAPI JSON file from `http://localhost:8000/api/v1/openapi.json`.
 - Copy it to `frontend/openapi.json`.
 - From `./frontend/`, run:
 
@@ -184,5 +185,6 @@ If you are developing an API-only app and want to remove the frontend:
 - In `compose.yml`, remove the `frontend` service.
 - In `compose.override.yml`, remove the `frontend` and `playwright` services.
 
-You can also remove `FRONTEND` environment variables from `.env` and
-`./scripts/*.sh` if you want to clean up unused settings.
+Update the root Bun workspace, lockfile, Makefile targets, and documentation to
+remove references to the frontend. Review `FRONTEND_HOST` and email links before
+changing them: password recovery emails currently link to the frontend.

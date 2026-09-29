@@ -49,11 +49,13 @@ backend/app/
 ├── api/
 │   └── main.py              # router aggregation
 ├── commands/
+│   ├── export_openapi.py     # OpenAPI export and consistency check
 │   ├── initial_data.py      # initial data seeding command
 │   └── wait_for_db.py       # DB readiness command
 ├── core/
 │   ├── config.py            # global settings
 │   ├── database.py          # async engine, session factory, metadata
+│   ├── email.py             # shared email delivery and rendering
 │   ├── exceptions.py        # global exception base + handlers
 │   ├── models.py            # shared ORM mixins and abstract model helpers
 │   ├── pagination.py        # shared pagination helpers
@@ -222,13 +224,20 @@ from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.config import settings
+
 engine = create_async_engine(str(settings.SQLALCHEMY_DATABASE_URI), pool_pre_ping=True)
-SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def get_session() -> AsyncGenerator[AsyncSession, None]:
-    async with SessionFactory() as session:
-        yield session
+async def get_session() -> AsyncGenerator[AsyncSession]:
+    async with SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 ```
 
 Rules:
@@ -274,6 +283,7 @@ metadata = MetaData(naming_convention=POSTGRES_NAMING_CONVENTION)
 - Migrations must be static and reversible unless explicitly documented otherwise.
 - Prefer incremental migrations for new schema changes.
 - Do not use `metadata.create_all()` as the application migration strategy.
+- Generate revisions on the host with `make migration MSG="describe change"` from the repository root. Compose Watch copies host changes into the container only; container-generated revisions are not copied back.
 
 ## Background Work
 
@@ -313,17 +323,21 @@ Do not put work in `BackgroundTasks` if losing it would page someone.
 
 ## Testing
 
-Backend tests should move to async as part of the backend rewrite.
+Backend API tests use async fixtures and `httpx.AsyncClient`. Reuse the fixtures
+in `backend/tests/conftest.py`, including their test database session override.
+For the underlying ASGI client pattern:
 
 ```python
-import pytest
+from collections.abc import AsyncGenerator
+
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
 
-@pytest.fixture
-async def client() -> AsyncClient:
+@pytest_asyncio.fixture
+async def client() -> AsyncGenerator[AsyncClient]:
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
@@ -332,11 +346,12 @@ async def client() -> AsyncClient:
 Rules:
 
 - Use `pytest-asyncio` for async tests.
+- Run `make test-backend` on the host with PostgreSQL available. The backend application image does not include the test suite or all of its configuration files.
 - Use `httpx.AsyncClient` with `ASGITransport`.
 - Use async SQLAlchemy fixtures for database tests.
 - Prefer a real test database or isolated schema for integration tests.
 - Cover API, dependency, and service behavior.
-- Keep tests runnable at each migration phase.
+- Cover new migrations with tests under `backend/tests/scripts/`.
 
 ## Change Checklists
 
