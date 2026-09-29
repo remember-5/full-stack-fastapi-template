@@ -9,15 +9,16 @@ Root-level guidance applies to the whole repository. Backend-specific rules in `
 ## Build, Test, and Development Commands
 
 - `docker compose up -d`: start the full stack.
-- `bash ./scripts/test.sh`: rebuild containers, run backend tests in Docker, then clean up.
-- `bash ./scripts/check.sh`: run backend lint, backend tests, frontend lint, and OpenAPI schema consistency checks without rewriting files.
-- `bash ./scripts/format.sh`: auto-format backend and frontend code.
+- `make test-backend`: run backend tests with coverage against the configured PostgreSQL instance.
+- `make check`: run lint, frontend type checks, backend tests, and OpenAPI schema consistency checks without rewriting source files.
+- `make typecheck`: check frontend TypeScript without building.
+- `make format`: auto-format backend and frontend code.
 - `cd backend && sh scripts/lint.sh`: run `mypy`, `ty`, `ruff check`, and `ruff format --check` for backend application code.
 - `cd backend && sh scripts/test.sh`: run `pytest` with coverage reports.
 - `bun run dev`: start the frontend Vite dev server from the root workspace.
 - `bun run lint` / `bun run test`: run frontend Biome checks or Playwright tests.
-- `bash ./scripts/check-openapi.sh`: verify `frontend/openapi.json` is in sync with the backend schema.
-- `bash ./scripts/generate-client.sh`: regenerate `frontend/src/client` after backend API schema changes.
+- `make check-openapi`: verify `frontend/openapi.json` is in sync with the backend schema.
+- `make client`: export OpenAPI and regenerate `frontend/src/client` after backend API schema changes.
 
 ## Coding Style & Naming Conventions
 

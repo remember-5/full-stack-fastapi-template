@@ -8,7 +8,7 @@ export MSG
 
 .PHONY: help install infra init-db dev-backend dev-frontend up down logs ps \
 	check lint format test-backend test-frontend build-frontend client \
-	check-openapi watch build restart shell test-ui migrate migrate-docker \
+	check-openapi typecheck watch build restart shell test-ui migrate migrate-docker \
 	migration migration-history
 
 help: ## Show available commands
@@ -42,15 +42,22 @@ logs: ## Follow Docker logs (optional SERVICE)
 ps: ## Show Docker service status
 	docker compose ps
 
-check: ## Run backend lint/tests, frontend lint, and OpenAPI consistency checks
-	bash scripts/check.sh
+check: ## Run lint, frontend type checks, backend tests, and OpenAPI checks
+	$(MAKE) lint
+	$(MAKE) typecheck
+	$(MAKE) test-backend
+	$(MAKE) check-openapi
 
 lint: ## Check backend and frontend code without modifying files
 	cd backend && bash scripts/lint.sh
 	bun run lint
 
+typecheck: ## Check frontend TypeScript without building
+	bun run --filter frontend typecheck
+
 format: ## Format and auto-fix backend and frontend code
-	bash scripts/format.sh
+	cd backend && bash scripts/format.sh
+	bun run --filter frontend format
 
 test-backend: ## Run backend tests with coverage (optional ARGS)
 	cd backend && bash scripts/test.sh $(ARGS)
@@ -61,11 +68,12 @@ test-frontend: ## Run frontend Playwright tests (optional ARGS)
 build-frontend: ## Type-check and build the frontend for production
 	bun run --filter frontend build
 
-client: ## Export OpenAPI, regenerate the frontend client, and lint it
-	bash scripts/generate-client.sh
+client: ## Export OpenAPI and regenerate the frontend client
+	cd backend && uv run --locked python -m app.commands.export_openapi --write
+	bun run --filter frontend generate-client
 
 check-openapi: ## Check that the committed OpenAPI schema matches the backend
-	bash scripts/check-openapi.sh
+	cd backend && uv run --locked python -m app.commands.export_openapi --check
 
 watch: ## Start Docker Compose watch mode
 	docker compose watch

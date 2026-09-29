@@ -39,6 +39,7 @@ including:
 
 ```bash
 bun run build
+bun run typecheck
 bun run preview
 bun run generate-client
 ```
@@ -72,14 +73,17 @@ made.
 
 ### Automatically
 
-- Activate the backend virtual environment.
 - From the top-level project directory, run:
 
 ```bash
-bash ./scripts/generate-client.sh
+make client
 ```
 
 - Commit the generated changes.
+
+Use `make check-openapi` from the root to compare the backend schema with the
+snapshot without rewriting files. Use `make typecheck` to check frontend types,
+or `make check` for the combined repository checks.
 
 ### Manually
 

@@ -1,3 +1,4 @@
+import os
 import secrets
 import warnings
 from typing import Annotated, Any, Literal, Self
@@ -24,8 +25,8 @@ def parse_cors(v: Any) -> list[str] | str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        # Use top level .env file (one level above ./backend/)
-        env_file="../.env",
+        # Commands can select a dotenv file without loading it as shell code.
+        env_file=os.getenv("APP_ENV_FILE", "../.env"),
         env_ignore_empty=True,
         extra="ignore",
     )

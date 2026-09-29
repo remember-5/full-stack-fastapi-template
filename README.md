@@ -140,23 +140,44 @@ The frontend API client in `frontend/src/client` is generated from the backend O
 Regenerate the client after changing backend routes, request/response schemas, or OpenAPI metadata:
 
 ```bash
-bash ./scripts/generate-client.sh
+make client
 ```
 
-That script:
+That target:
 
-- loads `.env` or falls back to `.env.example`;
+- uses backend Settings to load `.env`, falling back to `.env.example` only when
+  `.env` is absent; exported environment variables take precedence;
 - exports the current backend OpenAPI schema into `frontend/openapi.json`;
-- runs the frontend `generate-client` script;
-- runs frontend lint checks.
+- runs the frontend `generate-client` script.
 
 If you only want to verify that `frontend/openapi.json` is in sync with the backend schema:
 
 ```bash
-bash ./scripts/check-openapi.sh
+make check-openapi
 ```
 
-Commit `frontend/openapi.json` and the regenerated files under`frontend/src/client` together with the backend API change.
+The check compares JSON content, ignoring whitespace and object key order, and
+never rewrites the snapshot. Both commands share
+`backend/app/commands/export_openapi.py`; writing uses an atomic replacement.
+Neither command needs a running API server or database. Set `APP_ENV_FILE` to an
+absolute dotenv path to explicitly select configuration for the command.
+
+Commit `frontend/openapi.json` and the regenerated files under `frontend/src/client`
+together with the backend API change. `make check-openapi` checks the schema only;
+it does not verify the generated TypeScript files.
+
+In CI, use a clean, disposable checkout with dependencies installed to verify
+both the schema and generated client:
+
+```bash
+make client
+git diff --exit-code -- frontend/openapi.json frontend/src/client
+test -z "$(git status --porcelain -- frontend/openapi.json frontend/src/client)"
+```
+
+The status check also detects newly generated untracked files. Run this in a
+separate CI checkout because regeneration writes files. Run `make check` for
+lint, type checks, backend tests, and schema consistency.
 
 ## Common Commands
 
@@ -186,7 +207,8 @@ avoid binding the same ports twice.
 | `make build` / `make restart` | Build Docker images or restart services. |
 | `make shell` | Open Bash in the running backend container. |
 | `make lint` / `make format` | Check code or apply formatting and automatic fixes. |
-| `make check` | Run backend lint and tests, frontend lint, and OpenAPI consistency checks. |
+| `make check` | Run lint, frontend type checks, backend tests, and OpenAPI consistency checks. |
+| `make typecheck` | Check frontend TypeScript without building. |
 | `make test-backend` | Run backend tests with terminal and HTML coverage reports. |
 | `make test-frontend` / `make test-ui` | Run Playwright tests or open their UI. |
 | `make build-frontend` | Type-check and build the frontend. |
@@ -210,12 +232,14 @@ make migration MSG="add users index"
 Backend tests require the configured PostgreSQL instance. Playwright tests
 require the backend and Mailcatcher; Playwright starts or reuses the local Vite
 server. `make check` does not run Playwright tests or the frontend build.
+Its steps run sequentially through the individual Make targets and stop on failure.
+Frontend type checks use the same configuration as the production build;
+Playwright test files are excluded.
 `make format` includes the existing frontend script's unsafe automatic fixes;
 review its changes before committing.
 
-The Makefile does not wrap the root `scripts/test.sh`: that script removes Docker
-data volumes before and after running tests. `make test-backend` uses
-`backend/scripts/test.sh` instead.
+`make test-backend` runs `backend/scripts/test.sh` against the configured
+PostgreSQL instance using a separate test database.
 
 The underlying commands remain available:
 

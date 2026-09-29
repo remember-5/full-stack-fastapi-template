@@ -86,6 +86,7 @@ Run commands from `frontend/` unless a root script is explicitly needed.
 bun install
 bun run dev
 bun run build
+bun run typecheck
 bun run lint
 bun run generate-client
 bun run test
@@ -108,7 +109,7 @@ Before finishing a frontend change:
 - Run relevant Playwright tests when authentication, routing, settings, admin,
   or form workflows changed.
 - If backend API schemas changed, regenerate the client with
-  `bash ./scripts/generate-client.sh` from the repository root.
+  `make client` from the repository root.
 
 ## Generated Files
 
@@ -324,7 +325,7 @@ When adding or changing a page, update the matching set of files as needed:
 
 When changing a backend API consumed by the frontend:
 
-- regenerate `src/client/**` through `bash ./scripts/generate-client.sh`
+- regenerate `src/client/**` through `make client` from the repository root
 - update call sites to use generated service methods and types
 - do not hand-edit `src/client/**`
 

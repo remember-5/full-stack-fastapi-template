@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.build.json && vite build",
+    "build": "bun run typecheck && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "lint": "biome check --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "format": "biome check --write --unsafe --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "preview": "vite preview",
